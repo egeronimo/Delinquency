@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+## Solución para Visualización de Imágenes en Google Sites
+
+Para ver la guía completa, [haz clic aquí](https://htmlpreview.github.io/?https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/solucion-imagenes.html)
+
+<details>
+<summary>Ver guía completa (haz clic para expandir)</summary>
+
+// <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -322,3 +329,5 @@
 
 </body>
 </html>
+
+</details>
