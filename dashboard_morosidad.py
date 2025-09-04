@@ -58,34 +58,28 @@ def format_percent(value):
 @st.cache_data
 def load_data():
     try:
-        # Local file path (kept in Spanish as requested)
-        local_file_path = r"D:\Desktop2\TRABAJO BD\PROYECTOS_DB\IDEMEFA\MOROSIDAD\comportamiento saldo cuenta x cobrar.xlsx"
-        
-        # Verify if file exists
-        if not os.path.exists(local_file_path):
-            st.error(f"❌ File not found at: {local_file_path}")
-            return pd.DataFrame(), pd.DataFrame()
-        
-        with st.spinner('Loading data from local file...'):
-            # Read Excel file directly from local path
-            estado_cuenta = pd.read_excel(local_file_path, sheet_name='estado_de_cuenta', dtype={'NCF': str, 'Documento': str})
-            comportamiento_pago = pd.read_excel(local_file_path, sheet_name='comportamiento_de_pago', dtype={'NCF': str, 'Documento': str})
-        
+        # Google Sheets file (shared as "anyone with the link")
+        file_id = "1G5vuN9pSVcsc1UcMKXXHM21Kwjr8SU__"
+        drive_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
+
+        with st.spinner('Loading data...'):
+            # Leer directamente el Excel desde Google Drive (sin autenticación)
+            estado_cuenta = pd.read_excel(drive_url, sheet_name='estado_de_cuenta', dtype={'NCF': str, 'Documento': str})
+            comportamiento_pago = pd.read_excel(drive_url, sheet_name='comportamiento_de_pago', dtype={'NCF': str, 'Documento': str})
+
         # Data cleaning and transformation
         estado_cuenta['Fecha_fatura'] = pd.to_datetime(estado_cuenta['Fecha_fatura'], errors='coerce')
         estado_cuenta['Fecha_vencimiento'] = pd.to_datetime(estado_cuenta['Fecha_vencimiento'], errors='coerce')
-        
-        # Calculate days overdue if not exists
+
         if 'Dias' not in estado_cuenta.columns:
             estado_cuenta['Dias'] = (pd.to_datetime('today') - estado_cuenta['Fecha_vencimiento']).dt.days
-        
-        # Convert amounts to numeric
+
         amount_cols = ['Inicial', 'Balance', '0-30 Dias', '31-60 Dias', '61-90 Dias', '91-120 Dias', 'Mas 120 Dias']
         for col in amount_cols:
             if col in estado_cuenta.columns:
                 estado_cuenta[col] = pd.to_numeric(estado_cuenta[col].astype(str).str.replace(',', ''), errors='coerce')
-        
-        # Delinquency classification
+
+        # Clasificación morosidad
         estado_cuenta['Estado_Morosidad'] = np.where(
             estado_cuenta['Dias'] > 120, 'Severe Delinquency (+120 days)',
             np.where(
@@ -99,22 +93,16 @@ def load_data():
                 )
             )
         )
-        
-        # Payment behavior processing
+
+        # Procesar comportamiento de pago
         comportamiento_pago['Fecha_fatura'] = pd.to_datetime(comportamiento_pago['Fecha_fatura'], errors='coerce')
         amount_cols_pago = ['Pagado', 'Descuento', 'Total', 'Efectivo', 'Cheque', 'Tarjeta', 'Transferencia']
         for col in amount_cols_pago:
             if col in comportamiento_pago.columns:
                 comportamiento_pago[col] = pd.to_numeric(comportamiento_pago[col].astype(str).str.replace(',', ''), errors='coerce')
-        
+
         return estado_cuenta, comportamiento_pago
-    
-    except FileNotFoundError:
-        st.error("❌ File not found. Please verify the file path.")
-        return pd.DataFrame(), pd.DataFrame()
-    except PermissionError:
-        st.error("❌ Permission error. Make sure the file is not open in another program.")
-        return pd.DataFrame(), pd.DataFrame()
+
     except Exception as e:
         st.error(f"❌ Error processing data: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
